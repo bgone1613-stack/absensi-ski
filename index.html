@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi Kehadiran SKI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #0F766E;
+            --primary-light: #CCFBF1;
+            --bg-color: #F8FAFC;
+            --card-bg: #FFFFFF;
+            --text-main: #1E293B;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --success: #10B981;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .container { width: 100%; max-width: 600px; background: var(--card-bg); border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid var(--border); }
+        .header { background: linear-gradient(135deg, #0F766E 0%, #115E59 100%); color: white; padding: 30px; text-align: center; }
+        .header h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+        .header p { font-size: 13px; opacity: 0.9; }
+        .content { padding: 30px; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; color: var(--text-main); }
+        .form-group input, .form-group select { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; outline: none; background-color: #FFFFFF; color: var(--text-main); }
+        .form-group input:focus, .form-group select:focus { border-color: var(--primary); }
+        .form-group select:disabled { background-color: #F1F5F9; cursor: not-allowed; }
+        
+        .status-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .status-card { border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; cursor: pointer; font-weight: 600; font-size: 14px; color: var(--text-muted); transition: all 0.2s; background: #FFF; }
+        .status-card:hover { border-color: var(--primary); background: var(--primary-light); }
+        .status-card.active { border-color: var(--primary); background: var(--primary-light); color: #042F2E; box-shadow: 0 0 0 2px var(--primary); }
+
+        .btn { background-color: var(--primary); color: white; border: none; padding: 14px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s; margin-top: 10px; }
+        .btn:hover { background-color: #115E59; }
+        .btn:disabled { background-color: #CBD5E1; cursor: not-allowed; }
+
+        .success-box { display: none; text-align: center; padding: 20px 0; }
+        .success-icon { font-size: 50px; color: var(--success); margin-bottom: 15px; }
+        .success-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+        .success-desc { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Absensi Kehadiran SKI</h1>
+        <p>Pilih kelas terlebih dahulu untuk memunculkan daftar materi</p>
+    </div>
+    
+    <div class="content">
+        <!-- Form Absen -->
+        <div id="form-section">
+            <div class="form-group">
+                <label for="student-name">Nama Lengkap Siswa</label>
+                <input type="text" id="student-name" placeholder="Contoh: Siti Aminah">
+            </div>
+
+            <!-- Input Kelas Dropdown -->
+            <div class="form-group">
+                <label for="student-class">Pilih Kelas</label>
+                <select id="student-class" onchange="handleClassChange()">
+                    <option value="" disabled selected>-- Pilih Kelas Anda --</option>
+                    <option value="7A">7A</option>
+                    <option value="7B">7B</option>
+                    <option value="7C">7C</option>
+                    <option value="8A">8A</option>
+                    <option value="8B">8B</option>
+                    <option value="8C">8C</option>
+                    <option value="9A">9A</option>
+                    <option value="9B">9B</option>
+                </select>
+            </div>
+
+            <!-- Input Materi Dropdown (Dinamis berdasarkan Kelas) -->
+            <div class="form-group">
+                <label for="student-materi">Pilih Materi / Bab</label>
+                <select id="student-materi" disabled>
+                    <option value="" disabled selected>-- Pilih Kelas Terlebih Dahulu --</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Keterangan Kehadiran</label>
+                <div class="status-options">
+                    <div class="status-card" onclick="selectStatus('Hadir', this)">Hadir</div>
+                    <div class="status-card" onclick="selectStatus('Sakit', this)">Sakit</div>
+                    <div class="status-card" onclick="selectStatus('Izin', this)">Izin</div>
+                </div>
+            </div>
+
+            <button class="btn" id="submit-btn" onclick="submitAttendance()" disabled>Kirim Absensi</button>
+        </div>
+
+        <!-- Tampilan Sukses -->
+        <div id="success-section" class="success-box">
+            <div class="success-icon"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="success-title">Absensi Berhasil Tercatat!</div>
+            <p class="success-desc" id="success-msg">Terima kasih, kehadiranmu sudah direkam dalam sistem guru.</p>
+            <button class="btn" onclick="resetForm()">Absen Lagi / Kembali</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // MASUKKAN URL GOOGLE APPS SCRIPT WEB APP ANDA DI SINI
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwG6j-uWFh5Yvlws3JEjRq5v154Bx9jZgigY2wIux1FqAc4L2QEO4SxlKNABYlHHhHj/exec';
+
+    // Daftar materi berdasarkan tingkat kelas
+    const materiPerPelajaran = {
+        "7": [
+            "Bab 1 : Dakwah Nabi Muhammad SAW di Makkah",
+            "Bab 2 : Dakwah Nabi Muhammad SAW di Madinah",
+            "Bab 3 : Kepemimpinan Khulafaurrasyidin",
+            "Bab 4 : Daulah Umayyah",
+            "Bab 5 : Gaya Kepemimpinan Umar bin Abdul Aziz"
+        ],
+        "8": [
+            "Bab 1 : Sejarah Peradaban Islam Pada Masa Daulah Abbasiyah",
+            "Bab 2 : Peran Ilmuan Muslim Dan Ulama Terhadap Peradaban Islam",
+            "Bab 3 : Daulah Ayyubiyah: Cinta Tanah Air Dan Semangat Persatuan Umat",
+            "Bab 4 : Pemimpin Dan Ilmuwan Daulah Ayyubiyah: Teladan Cinta Dalam Karya",
+            "Bab 5 : Daulah Mamluk: Benteng Peradaban Islam Dengan Semangat Cinta Dan Keberanian"
+        ],
+        "9": [
+            "Bab 1 : Sejarah Islam di Indonesia",
+            "Bab 2 : Kerajaan Islam di Indonesia",
+            "Bab 3 : Peran Pesantren dalam Dakwah Islam di Indonesia",
+            "Bab 4 : Nilai-Nilai Islam dan Kearifan Lokal",
+            "Bab 5 : Walisanga dalam Dakwah Islam di Indonesia",
+            "Bab 6 : Syaikh Abdur Rauf As-Singkili & Syaikh Muhammad Arsyad Al-Banjari",
+            "Bab 7 : Pendiri Organisasi Keagamaan di Indonesia"
+        ]
+    };
+
+    let selectedStatusValue = "";
+
+    function handleClassChange() {
+        const classVal = document.getElementById("student-class").value;
+        const materiSelect = document.getElementById("student-materi");
+        
+        materiSelect.innerHTML = '<option value="" disabled selected>-- Pilih Materi Pembelajaran --</option>';
+        
+        if (classVal) {
+            const tingkat = classVal.charAt(0); // Mengambil angka pertama (7, 8, atau 9)
+            const listMateri = materiPerPelajaran[tingkat] || [];
+            
+            listMateri.forEach(materi => {
+                const opt = document.createElement("option");
+                opt.value = materi;
+                opt.textContent = materi;
+                materiSelect.appendChild(opt);
+            });
+            
+            materiSelect.disabled = false;
+        } else {
+            materiSelect.disabled = true;
+        }
+        checkFormValidity();
+    }
+
+    function selectStatus(status, element) {
+        document.querySelectorAll(".status-card").forEach(el => el.classList.remove("active"));
+        element.classList.add("active");
+        selectedStatusValue = status;
+        checkFormValidity();
+    }
+
+    document.getElementById("student-name").addEventListener("input", checkFormValidity);
+    document.getElementById("student-class").addEventListener("change", checkFormValidity);
+    document.getElementById("student-materi").addEventListener("change", checkFormValidity);
+
+    function checkFormValidity() {
+        const name = document.getElementById("student-name").value.trim();
+        const studentClass = document.getElementById("student-class").value;
+        const studentMateri = document.getElementById("student-materi").value;
+        const btn = document.getElementById("submit-btn");
+
+        if (name && studentClass && studentMateri && selectedStatusValue) {
+            btn.disabled = false;
+        } else {
+            btn.disabled = true;
+        }
+    }
+
+    function submitAttendance() {
+        const name = document.getElementById("student-name").value.trim();
+        const studentClass = document.getElementById("student-class").value;
+        const materi = document.getElementById("student-materi").value;
+        const btn = document.getElementById("submit-btn");
+
+        btn.innerText = "Mengirim...";
+        btn.disabled = true;
+
+        const payload = {
+            name: name,
+            class: studentClass,
+            materi: materi,
+            status: selectedStatusValue
+        };
+
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(() => {
+            document.getElementById("form-section").style.display = "none";
+            document.getElementById("success-section").style.display = "block";
+            document.getElementById("success-msg").innerText = `Terima kasih ${name} (Kelas ${studentClass}), kehadiran untuk materi "${materi}" berhasil disimpan.`;
+        }).catch(err => {
+            alert("Terjadi kesalahan koneksi. Silakan coba lagi.");
+            btn.innerText = "Kirim Absensi";
+            btn.disabled = false;
+        });
+    }
+
+    function resetForm() {
+        document.getElementById("student-name").value = "";
+        document.getElementById("student-class").selectedIndex = 0;
+        const materiSelect = document.getElementById("student-materi");
+        materiSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kelas Terlebih Dahulu --</option>';
+        materiSelect.disabled = true;
+        
+        document.querySelectorAll(".status-card").forEach(el => el.classList.remove("active"));
+        selectedStatusValue = "";
+        document.getElementById("submit-btn").innerText = "Kirim Absensi";
+        document.getElementById("submit-btn").disabled = true;
+        document.getElementById("success-section").style.display = "none";
+        document.getElementById("form-section").style.display = "block";
+    }
+</script>
+</body>
+</html>
