@@ -21,28 +21,27 @@
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
         
-        /* PERUBAHAN UTAMA UNTUK EMBED GOOGLE SITES */
-        body { 
+        /* DIPERBAIKI: Mencegah scroll ganda di dalam iframe Google Sites */
+        html, body { 
             background-color: var(--bg-color); 
             color: var(--text-main); 
             width: 100%;
             margin: 0;
-            padding: 10px; /* Padding tipis agar pas di HP */
-            display: block; /* Dibuat normal agar tidak memotong iframe */
+            padding: 10px;
+            overflow: hidden; 
         }
         
         .container { 
             width: 100%; 
             max-width: 600px; 
-            margin: 0 auto; /* Otomatis di tengah secara horizontal */
+            margin: 0 auto; 
             background: var(--card-bg); 
             border-radius: 16px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
-            overflow: hidden; 
             border: 1px solid var(--border); 
         }
 
-        .header { background: linear-gradient(135deg, #0F766E 0%, #115E59 100%); color: white; padding: 24px 20px; text-align: center; }
+        .header { background: linear-gradient(135deg, #0F766E 0%, #115E59 100%); color: white; padding: 24px 20px; text-align: center; border-top-left-radius: 16px; border-top-right-radius: 16px;}
         .header h1 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
         .header p { font-size: 13px; opacity: 0.9; }
         
@@ -131,10 +130,8 @@
 </div>
 
 <script>
-    // MASUKKAN URL GOOGLE APPS SCRIPT WEB APP ANDA DI SINI
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwG6j-uWFh5Yvlws3JEjRq5v154Bx9jZgigY2wIux1FqAc4L2QEO4SxlKNABYlHHhHj/exec';
 
-    // Daftar materi berdasarkan tingkat kelas
     const materiPerPelajaran = {
         "7": [
             "Bab 1 : Dakwah Nabi Muhammad SAW di Makkah",
@@ -170,7 +167,7 @@
         materiSelect.innerHTML = '<option value="" disabled selected>-- Pilih Materi Pembelajaran --</option>';
         
         if (classVal) {
-            const tingkat = classVal.charAt(0); // Mengambil angka pertama (7, 8, atau 9)
+            const tingkat = classVal.charAt(0);
             const listMateri = materiPerPelajaran[tingkat] || [];
             
             listMateri.forEach(materi => {
@@ -243,7 +240,7 @@
         });
     }
 
-    function resetForm() {
+    const resetForm = () => {
         document.getElementById("student-name").value = "";
         document.getElementById("student-class").selectedIndex = 0;
         const materiSelect = document.getElementById("student-materi");
