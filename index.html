@@ -65,6 +65,7 @@
         .success-icon { font-size: 45px; color: var(--success); margin-bottom: 12px; }
         .success-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
         .success-desc { color: var(--text-muted); font-size: 13px; margin-bottom: 16px; }
+        .loading-text { font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block; }
     </style>
 </head>
 <body>
@@ -72,37 +73,33 @@
 <div class="container">
     <div class="header">
         <h1>Absensi Kehadiran SKI</h1>
-        <p>Pilih kelas terlebih dahulu untuk memunculkan daftar materi</p>
+        <p>Pilih kelas terlebih dahulu untuk memunculkan nama dan materi</p>
     </div>
     
     <div class="content">
         <!-- Form Absen -->
         <div id="form-section">
-            <div class="form-group">
-                <label for="student-name">Nama Lengkap Siswa</label>
-                <input type="text" id="student-name" placeholder="Contoh: Siti Aminah">
-            </div>
-
-            <!-- Input Kelas Dropdown -->
+            <!-- Input Kelas Dropdown (Paling Utama) -->
             <div class="form-group">
                 <label for="student-class">Pilih Kelas</label>
                 <select id="student-class" onchange="handleClassChange()">
-                    <option value="" disabled selected>-- Pilih Kelas Anda --</option>
-                    <option value="7A">7A</option>
-                    <option value="7B">7B</option>
-                    <option value="7C">7C</option>
-                    <option value="8A">8A</option>
-                    <option value="8B">8B</option>
-                    <option value="8C">8C</option>
-                    <option value="9A">9A</option>
-                    <option value="9B">9B</option>
+                    <option value="" disabled selected>-- Memuat Data Kelas... --</option>
                 </select>
             </div>
 
-            <!-- Input Materi Dropdown (Dinamis berdasarkan Kelas) -->
+            <!-- Input Nama Siswa Dropdown (Otomatis berdasarkan Kelas) -->
+            <div class="form-group">
+                <label for="student-name">Nama Lengkap Siswa</label>
+                <select id="student-name" onchange="checkFormValidity()" disabled>
+                    <option value="" disabled selected>-- Pilih Kelas Terlebih Dahulu --</option>
+                </select>
+                <span id="loading-student" class="loading-text" style="display:none;">Mengambil data siswa...</span>
+            </div>
+
+            <!-- Input Materi Dropdown (Dinamis berdasarkan Tingkat Kelas) -->
             <div class="form-group">
                 <label for="student-materi">Pilih Materi / Bab</label>
-                <select id="student-materi" disabled>
+                <select id="student-materi" onchange="checkFormValidity()" disabled>
                     <option value="" disabled selected>-- Pilih Kelas Terlebih Dahulu --</option>
                 </select>
             </div>
@@ -158,29 +155,82 @@
         ]
     };
 
+    let globalStudentsData = [];
     let selectedStatusValue = "";
+
+    // Ambil data siswa dari Spreadsheet saat halaman pertama kali dibuka
+    window.addEventListener("DOMContentLoaded", () => {
+        fetch(SCRIPT_URL + '?action=getStudents')
+            .then(response => response.json())
+            .then(data => {
+                globalStudentsData = data;
+                setupClassDropdown();
+            })
+            .catch(error => {
+                console.error("Gagal mengambil data siswa:", error);
+                const classSelect = document.getElementById("student-class");
+                classSelect.innerHTML = '<option value="" disabled selected>-- Gagal Memuat Kelas (Coba Refresh) --</option>';
+            });
+    });
+
+    function setupClassDropdown() {
+        const classSelect = document.getElementById("student-class");
+        classSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kelas Anda --</option>';
+        
+        // Ambil daftar kelas yang unik dari data siswa
+        const uniqueClasses = [...new Set(globalStudentsData.map(s => s.kelas))].sort();
+        
+        if (uniqueClasses.length === 0) {
+            classSelect.innerHTML = '<option value="" disabled selected>-- Tidak Ada Data Kelas --</option>';
+            return;
+        }
+
+        uniqueClasses.forEach(cls => {
+            const opt = document.createElement("option");
+            opt.value = cls;
+            opt.textContent = "Kelas " + cls;
+            classSelect.appendChild(opt);
+        });
+    }
 
     function handleClassChange() {
         const classVal = document.getElementById("student-class").value;
+        const nameSelect = document.getElementById("student-name");
         const materiSelect = document.getElementById("student-materi");
         
-        materiSelect.innerHTML = '<option value="" disabled selected>-- Pilih Materi Pembelajaran --</option>';
-        
+        // 1. Reset & Isi Dropdown Nama Berdasarkan Kelas yang Dipilih
+        nameSelect.innerHTML = '<option value="" disabled selected>-- Pilih Nama Anda --</option>';
+        nameSelect.disabled = true;
+
         if (classVal) {
+            const filteredStudents = globalStudentsData.filter(s => s.kelas === classVal);
+            filteredStudents.sort((a, b) => a.nama.localeCompare(b.nama));
+
+            filteredStudents.forEach(student => {
+                const opt = document.createElement("option");
+                opt.value = student.nama;
+                opt.textContent = student.nama;
+                nameSelect.appendChild(opt);
+            });
+            nameSelect.disabled = false;
+
+            // 2. Isi Dropdown Materi Berdasarkan Tingkat Kelas (Angka pertama dari kelas, misal "7A" -> "7")
             const tingkat = classVal.charAt(0);
             const listMateri = materiPerPelajaran[tingkat] || [];
             
+            materiSelect.innerHTML = '<option value="" disabled selected>-- Pilih Materi Pembelajaran --</option>';
             listMateri.forEach(materi => {
                 const opt = document.createElement("option");
                 opt.value = materi;
                 opt.textContent = materi;
                 materiSelect.appendChild(opt);
             });
-            
             materiSelect.disabled = false;
         } else {
+            materiSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kelas Terlebih Dahulu --</option>';
             materiSelect.disabled = true;
         }
+
         checkFormValidity();
     }
 
@@ -191,12 +241,8 @@
         checkFormValidity();
     }
 
-    document.getElementById("student-name").addEventListener("input", checkFormValidity);
-    document.getElementById("student-class").addEventListener("change", checkFormValidity);
-    document.getElementById("student-materi").addEventListener("change", checkFormValidity);
-
     function checkFormValidity() {
-        const name = document.getElementById("student-name").value.trim();
+        const name = document.getElementById("student-name").value;
         const studentClass = document.getElementById("student-class").value;
         const studentMateri = document.getElementById("student-materi").value;
         const btn = document.getElementById("submit-btn");
@@ -209,7 +255,7 @@
     }
 
     function submitAttendance() {
-        const name = document.getElementById("student-name").value.trim();
+        const name = document.getElementById("student-name").value;
         const studentClass = document.getElementById("student-class").value;
         const materi = document.getElementById("student-materi").value;
         const btn = document.getElementById("submit-btn");
@@ -218,7 +264,7 @@
         btn.disabled = true;
 
         const payload = {
-            action: 'absensi', // Parameter action ditambahkan agar terbaca di Google Apps Script
+            action: 'absensi',
             name: name,
             class: studentClass,
             materi: materi,
@@ -242,8 +288,12 @@
     }
 
     const resetForm = () => {
-        document.getElementById("student-name").value = "";
         document.getElementById("student-class").selectedIndex = 0;
+        
+        const nameSelect = document.getElementById("student-name");
+        nameSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kelas Terlebih Dahulu --</option>';
+        nameSelect.disabled = true;
+
         const materiSelect = document.getElementById("student-materi");
         materiSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kelas Terlebih Dahulu --</option>';
         materiSelect.disabled = true;
