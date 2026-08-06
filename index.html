@@ -63,7 +63,7 @@
          
         .form-group { text-align: left; } 
         .form-group label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 12.5px; color: var(--text-main); } 
-        .form-group select, .form-group input { 
+        .form-group select { 
             width: 100%; 
             padding: 11px 12px; 
             border: 1px solid var(--border); 
@@ -72,14 +72,9 @@
             outline: none; 
             background-color: #FFFFFF; 
             color: var(--text-main); 
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            background-size: 16px;
-            padding-right: 36px;
+            cursor: pointer;
         } 
-        .form-group select:focus, .form-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12); } 
+        .form-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12); } 
         .form-group select:disabled { background-color: #F8FAFC; cursor: not-allowed; color: var(--text-muted); }
 
         .status-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 2px; } 
@@ -112,13 +107,7 @@
             <div class="form-group">
                 <label for="student-class"><i class="fa-solid fa-school" style="color: var(--primary);"></i> Pilih Kelas</label>
                 <select id="student-class" onchange="handleClassChange()">
-                    <option value="" disabled selected>-- Pilih Kelas Anda --</option>
-                    <option value="VII A">Kelas VII A</option>
-                    <option value="VII B">Kelas VII B</option>
-                    <option value="VIII A">Kelas VIII A</option>
-                    <option value="VIII B">Kelas VIII B</option>
-                    <option value="IX A">Kelas IX A</option>
-                    <option value="IX B">Kelas IX B</option>
+                    <option value="" disabled selected>-- Memuat Data Kelas... --</option>
                 </select>
             </div>
 
@@ -166,7 +155,7 @@
 <script>
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwUQCG12lluDsM-UhY4SsZMZcgh5xbf4dE8FgwrK8xLoyqwwWVtc9D6j8za52ntMBsU/exec';
 
-    // Daftar materi sesuai permintaan lengkap
+    // Daftar materi lengkap sesuai permintaan Anda
     const materiPerPelajaran = {
         "7": [
             "Bab 1 : Dakwah Nabi Muhammad SAW di Makkah",
@@ -196,46 +185,45 @@
     let globalStudentsData = [];
     let selectedStatusValue = "";
 
-    // Ambil data siswa dari Google Sheets secara asynchronous di latar belakang
     window.addEventListener("DOMContentLoaded", () => {
         fetch(SCRIPT_URL + '?action=getStudents')
             .then(response => response.json())
             .then(data => {
-                if (data && data.length > 0) {
-                    globalStudentsData = data;
-                    updateClassDropdownFromSheets();
-                }
+                globalStudentsData = data;
+                setupClassDropdown();
             })
             .catch(error => {
-                console.log("Menggunakan daftar kelas default lokal.");
+                console.error("Gagal mengambil data:", error);
+                // Fallback kelas jika gagal koneksi sheet
+                globalStudentsData = [
+                    {nama: "Siswa VII A", kelas: "VII A"},
+                    {nama: "Siswa VIII A", kelas: "VIII A"},
+                    {nama: "Siswa IX A", kelas: "IX A"}
+                ];
+                setupClassDropdown();
             });
     });
 
-    function updateClassDropdownFromSheets() {
+    function setupClassDropdown() {
         const classSelect = document.getElementById("student-class");
+        classSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kelas Anda --</option>';
+        
         let uniqueClasses = [...new Set(globalStudentsData.map(s => s.kelas))].sort();
         
-        if (uniqueClasses.length > 0) {
-            classSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kelas Anda --</option>';
-            uniqueClasses.forEach(cls => {
-                let opt = document.createElement("option");
-                opt.value = cls;
-                opt.textContent = cls;
-                classSelect.appendChild(opt);
-            });
-        }
+        uniqueClasses.forEach(cls => {
+            let opt = document.createElement("option");
+            opt.value = cls;
+            opt.textContent = cls;
+            classSelect.appendChild(opt);
+        });
     }
 
     function getLevelKey(cls) {
-        if (!cls) return "8";
         let c = cls.toString().toUpperCase();
-        if (c.includes("VII")) return "7";
-        if (c.includes("VIII")) return "8";
-        if (c.includes("IX")) return "9";
-        if (c.includes("7")) return "7";
-        if (c.includes("8")) return "8";
-        if (c.includes("9")) return "9";
-        return "8";
+        if (c.includes("VII") || c.includes("7")) return "7";
+        if (c.includes("VIII") || c.includes("8")) return "8";
+        if (c.includes("IX") || c.includes("9")) return "9";
+        return "8"; // Default ke kelas 8 jika tidak dikenali
     }
 
     function handleClassChange() {
@@ -243,7 +231,7 @@
         const nameSelect = document.getElementById("student-name");
         const materiSelect = document.getElementById("student-materi");
         
-        // 1. Setup Nama Siswa
+        // 1. Filter Nama Siswa berdasarkan Kelas
         nameSelect.innerHTML = '<option value="" disabled selected>-- Pilih Nama Anda --</option>';
         nameSelect.disabled = true;
 
@@ -251,23 +239,15 @@
             let filteredStudents = globalStudentsData.filter(s => s.kelas === classVal);
             filteredStudents.sort((a, b) => a.nama.localeCompare(b.nama));
 
-            if (filteredStudents.length > 0) {
-                filteredStudents.forEach(student => {
-                    let opt = document.createElement("option");
-                    opt.value = student.nama;
-                    opt.textContent = student.nama;
-                    nameSelect.appendChild(opt);
-                });
-            } else {
-                // Fallback jika data siswa di sheet belum termuat sempurna
+            filteredStudents.forEach(student => {
                 let opt = document.createElement("option");
-                opt.value = "Siswa " + classVal;
-                opt.textContent = "Suaikan Nama di Spreadsheet";
+                opt.value = student.nama;
+                opt.textContent = student.nama;
                 nameSelect.appendChild(opt);
-            }
+            });
             nameSelect.disabled = false;
 
-            // 2. Setup Materi Otomatis Berdasarkan Kelas
+            // 2. Munculkan dan Isi Materi Berdasarkan Tingkat Kelas
             let tingkat = getLevelKey(classVal);
             let listMateri = materiPerPelajaran[tingkat] || [];
             
