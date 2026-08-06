@@ -21,7 +21,7 @@
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
         
-        /* DIPERBAIKI: Mencegah scroll ganda di dalam iframe Google Sites */
+        /* Mencegah scroll ganda di dalam iframe Google Sites */
         html, body { 
             background-color: var(--bg-color); 
             color: var(--text-main); 
@@ -130,7 +130,7 @@
 </div>
 
 <script>
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwG6j-uWFh5Yvlws3JEjRq5v154Bx9jZgigY2wIux1FqAc4L2QEO4SxlKNABYlHHhHj/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwUQCG12lluDsM-UhY4SsZMZcgh5xbf4dE8FgwrK8xLoyqwwWVtc9D6j8za52ntMBsU/exec';
 
     const materiPerPelajaran = {
         "7": [
@@ -218,6 +218,7 @@
         btn.disabled = true;
 
         const payload = {
+            action: 'absensi', // Parameter action ditambahkan agar terbaca di Google Apps Script
             name: name,
             class: studentClass,
             materi: materi,
